@@ -27,6 +27,8 @@ SOFTWARE.
 
 #include <maya/MPxNode.h>
 #include <maya/MFnNumericAttribute.h>
+#include <maya/MVector.h>
+#include <maya/MMatrix.h>
 
 #include <math.h>
 #include <iostream>
@@ -43,15 +45,14 @@ public:
 	static MStatus initialize();
 
 	static MTypeId id;
-	static MObject aOutTranslateA;
-	static MObject aOutTranslateB;
-	static MObject aInTranslateA;
-	static MObject aInTranslateB;
+	static MObject aInPointA;
+	static MObject aInPointB;
+	static MObject aOutPointA;
+	static MObject aOutPointB;
+
 	static MObject aRadiusA;
 	static MObject aRadiusB;
-	static MObject aCollision;
-	static MObject aWeightA;
-	static MObject aWeightB;
+
 
 
 };

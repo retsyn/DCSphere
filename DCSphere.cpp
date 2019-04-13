@@ -24,17 +24,18 @@ SOFTWARE.
 
 #include "DCSphereNode.h"
 
-MTypeId DCSphereNode::id(0x00000231);
 
-MObject DCSphereNode::aOutTranslateA;
-MObject DCSphereNode::aOutTranslateB;
-MObject DCSphereNode::aInTranslateA;
-MObject DCSphereNode::aInTranslateB;
+
+MTypeId DCSphereNode::id(0x00000231);
+// Plugs
+MObject DCSphereNode::aInPointA;
+MObject DCSphereNode::aInPointB;
+MObject DCSphereNode::aOutPointA;
+MObject DCSphereNode::aOutPointB;
+
 MObject DCSphereNode::aRadiusA;
 MObject DCSphereNode::aRadiusB;
-MObject DCSphereNode::aCollision;
-MObject DCSphereNode::aWeightA;
-MObject DCSphereNode::aWeightB;
+
 
 DCSphereNode::DCSphereNode()
 {
@@ -53,7 +54,16 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 {
 	MStatus status;
 
-	
+	// If user attempts to request plug data that isn't relevant to our computation, we safely return.
+	if ((plug != aOutPointA) || (plug != aOutPointB)) {
+		return MS::kUnknownParameter;
+	}
+
+	MVector inPointAValue = data.inputValue(aInPointA, &status).asVector();
+	MVector inPointBValue = data.inputValue(aInPointB, &status).asVector();
+	MVector outPointAValue = data.inputValue(aOutPointA, &status).asVector();
+	MVector outPointBValue = data.inputValue(aOutPointB, &status).asVector();
+
 	data.setClean(plug);
 
 	return MS::kSuccess;
@@ -64,6 +74,52 @@ MStatus DCSphereNode::initialize()
 {
 	MStatus status;
 	MFnNumericAttribute nAttr;
+
+	// Output plugs
+	// Result A Translate
+	aOutPointA = nAttr.createPoint("outPositionA", "outPositionA");
+	nAttr.setWritable(false);
+	nAttr.setStorable(false);
+	addAttribute(aOutPointA);
+	// Result B Translate
+	aOutPointB = nAttr.createPoint("outPositionB", "outPositionB");
+	nAttr.setWritable(false);
+	nAttr.setStorable(false);
+	addAttribute(aOutPointB);
+
+	// In point plugs.
+	// Each in put must affect both out points for correct DG propagation.
+
+	// Input A Translate
+	aInPointA = nAttr.createPoint("inPositionA", "inPositionA");
+	nAttr.setKeyable(true);
+	nAttr.setWritable(true);
+	addAttribute(aInPointA);
+	attributeAffects(aInPointA, aOutPointA);
+	attributeAffects(aInPointA, aOutPointB);
+	// Input B Translate
+	aInPointB = nAttr.createPoint("inPositionB", "inPositionB");
+	nAttr.setKeyable(true);
+	nAttr.setWritable(true);
+	addAttribute(aInPointB);
+	attributeAffects(aInPointB, aOutPointA);
+	attributeAffects(aInPointB, aOutPointB);
+
+
+	// Radii plugs.  Just floats in this case.
+	aRadiusA = nAttr.create("radiusA", "radiusA", MFnNumericData::kFloat);
+	nAttr.setKeyable(true);
+	nAttr.setWritable(true);
+	addAttribute(aRadiusA);
+	attributeAffects(aRadiusA, aOutPointA);
+	attributeAffects(aRadiusA, aOutPointB);
+
+	aRadiusB = nAttr.create("radiusB", "radiusB", MFnNumericData::kFloat);
+	nAttr.setKeyable(true);
+	nAttr.setWritable(true);
+	addAttribute(aRadiusB);
+	attributeAffects(aRadiusB, aOutPointA);
+	attributeAffects(aRadiusB, aOutPointB);
 
 	return MS::kSuccess;
 }
