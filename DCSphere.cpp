@@ -28,7 +28,7 @@ bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radius
 
 
 
-MTypeId DCSphereNode::id(0x00000231);
+MTypeId DCSphereNode::id(0x00001966);
 // Plugs
 MObject DCSphereNode::aInPointA;
 MObject DCSphereNode::aInPointB;
@@ -65,8 +65,11 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 
 	MVector inPointAValue = data.inputValue(aInPointA, &status).asVector();
 	MVector inPointBValue = data.inputValue(aInPointB, &status).asVector();
+	// Maybe outputs shouldn't be in this part?
 	MVector outPointAValue = data.inputValue(aOutPointA, &status).asVector();
 	MVector outPointBValue = data.inputValue(aOutPointB, &status).asVector();
+
+	bool collideFlag = data.inputValue(aCollide, &status).asBool();
 
 	float radiusA = data.inputValue(aRadiusA, &status).asFloat();
 	float radiusB = data.inputValue(aRadiusB, &status).asFloat();
@@ -74,9 +77,29 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 	// Chec for sphere-sphere intersection first off.  If there's none, stop compute.
 	if (SphereIntersect(inPointAValue, inPointBValue, radiusA, radiusB)) {
 		// Do the displacement calculations
-
+		collideFlag = true;
 
 	}
+	else {
+		collideFlag = false;
+	}
+
+	MDataHandle hOutput = data.outputValue(aCollide, &status);
+	CHECK_MSTATUS_AND_RETURN_IT(status);
+	hOutput.setBool(collideFlag);
+	hOutput.setClean();
+
+	MDataHandle hOutPointA = data.outputValue(aOutPointA, &status);
+	CHECK_MSTATUS_AND_RETURN_IT(status);
+	hOutPointA.setMVector(outPointAValue);
+	hOutPointA.setClean();
+
+	MDataHandle hOutPointB = data.outputValue(aOutPointB, &status);
+	CHECK_MSTATUS_AND_RETURN_IT(status);
+	hOutPointB.setMVector(outPointBValue);
+	hOutPointB.setClean();
+
+
 
 	data.setClean(plug);
 
