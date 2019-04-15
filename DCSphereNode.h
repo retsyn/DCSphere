@@ -53,7 +53,7 @@ public:
 	static MObject aRadiusA;
 	static MObject aRadiusB;
 
-
+	static MObject aCollide;
 
 };
 

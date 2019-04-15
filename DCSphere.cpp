@@ -24,6 +24,8 @@ SOFTWARE.
 
 #include "DCSphereNode.h"
 
+bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB);
+
 
 
 MTypeId DCSphereNode::id(0x00000231);
@@ -35,6 +37,8 @@ MObject DCSphereNode::aOutPointB;
 
 MObject DCSphereNode::aRadiusA;
 MObject DCSphereNode::aRadiusB;
+
+MObject DCSphereNode::aCollide;
 
 
 DCSphereNode::DCSphereNode()
@@ -64,9 +68,32 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 	MVector outPointAValue = data.inputValue(aOutPointA, &status).asVector();
 	MVector outPointBValue = data.inputValue(aOutPointB, &status).asVector();
 
+	float radiusA = data.inputValue(aRadiusA, &status).asFloat();
+	float radiusB = data.inputValue(aRadiusB, &status).asFloat();
+
+	// Chec for sphere-sphere intersection first off.  If there's none, stop compute.
+	if (SphereIntersect(inPointAValue, inPointBValue, radiusA, radiusB)) {
+		// Do the displacement calculations
+
+
+	}
+
 	data.setClean(plug);
 
 	return MS::kSuccess;
+}
+
+bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB)
+{
+	// Find the distance between centre points of A and B.
+	MVector d = pointA - pointB;
+	// Square the distance first to avoid excess computation from sqrt function.
+	double dist2 = (d * d); 
+	
+	// Spheres intersect if squared distance is less than sum of radii.
+	float radiusSum = radiusA + radiusB;
+
+	return dist2 <= radiusSum * radiusSum;
 }
 
 
@@ -120,6 +147,12 @@ MStatus DCSphereNode::initialize()
 	addAttribute(aRadiusB);
 	attributeAffects(aRadiusB, aOutPointA);
 	attributeAffects(aRadiusB, aOutPointB);
+
+	// Collide bool-- such that riggers can trigger other events upon collision.
+	aCollide = nAttr.create("collide", "collide", MFnNumericData::kBoolean);
+	nAttr.setWritable(false);
+	nAttr.setStorable(false);
+	addAttribute(aCollide);
 
 	return MS::kSuccess;
 }
