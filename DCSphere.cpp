@@ -58,53 +58,54 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 {
 	MStatus status;
 
+	/*
 	// If user attempts to request plug data that isn't relevant to our computation, we safely return.
 	if ((plug != aOutPointA) || (plug != aOutPointB)) {
 		return MS::kUnknownParameter;
 	}
+	*/
 
-	MVector inPointAValue = data.inputValue(aInPointA, &status).asVector();
-	MVector inPointBValue = data.inputValue(aInPointB, &status).asVector();
-	// Maybe outputs shouldn't be in this part?
-	MVector outPointAValue = data.inputValue(aOutPointA, &status).asVector();
-	MVector outPointBValue = data.inputValue(aOutPointB, &status).asVector();
-
-	bool collideFlag = data.inputValue(aCollide, &status).asBool();
-
+	// Relevant plugs to assigned to local vars.
+	MFloatVector inPointAValue = data.inputValue(aInPointA, &status).asFloatVector();
+	MFloatVector inPointBValue = data.inputValue(aInPointB, &status).asFloatVector();
 	float radiusA = data.inputValue(aRadiusA, &status).asFloat();
 	float radiusB = data.inputValue(aRadiusB, &status).asFloat();
+
+	// Local vars that'll become output.
+	bool collideFlag;
+	MFloatVector outPointAValue;
+	MFloatVector outPointBValue;
 
 	// Chec for sphere-sphere intersection first off.  If there's none, stop compute.
 	if (SphereIntersect(inPointAValue, inPointBValue, radiusA, radiusB)) {
 		// Do the displacement calculations
 		collideFlag = true;
+		outPointAValue.y += 1; // Testing hooey to see if collision can move something.
 
 	}
 	else {
 		collideFlag = false;
 	}
 
+	cout << collideFlag;
+
+
+	/// XXX get back to this part and repair it after the algorithm is written.
 	MDataHandle hOutput = data.outputValue(aCollide, &status);
 	CHECK_MSTATUS_AND_RETURN_IT(status);
 	hOutput.setBool(collideFlag);
 	hOutput.setClean();
 
-	MDataHandle hOutPointA = data.outputValue(aOutPointA, &status);
+	hOutput = data.outputValue(aOutPointA, &status);
 	CHECK_MSTATUS_AND_RETURN_IT(status);
-	hOutPointA.setMVector(outPointAValue);
-	hOutPointA.setClean();
-
-	MDataHandle hOutPointB = data.outputValue(aOutPointB, &status);
-	CHECK_MSTATUS_AND_RETURN_IT(status);
-	hOutPointB.setMVector(outPointBValue);
-	hOutPointB.setClean();
-
-
+	hOutput.setMFloatVector(outPointAValue);
+	hOutput.setClean();
 
 	data.setClean(plug);
 
 	return MS::kSuccess;
 }
+
 
 bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB)
 {
@@ -116,7 +117,7 @@ bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radius
 	// Spheres intersect if squared distance is less than sum of radii.
 	float radiusSum = radiusA + radiusB;
 
-	return dist2 <= radiusSum * radiusSum;
+	return (dist2 <= radiusSum * radiusSum);
 }
 
 
@@ -147,6 +148,8 @@ MStatus DCSphereNode::initialize()
 	addAttribute(aInPointA);
 	attributeAffects(aInPointA, aOutPointA);
 	attributeAffects(aInPointA, aOutPointB);
+	attributeAffects(aInPointA, aCollide);
+
 	// Input B Translate
 	aInPointB = nAttr.createPoint("inPositionB", "inPositionB");
 	nAttr.setKeyable(true);
@@ -154,7 +157,7 @@ MStatus DCSphereNode::initialize()
 	addAttribute(aInPointB);
 	attributeAffects(aInPointB, aOutPointA);
 	attributeAffects(aInPointB, aOutPointB);
-
+	attributeAffects(aInPointB, aCollide);
 
 	// Radii plugs.  Just floats in this case.
 	aRadiusA = nAttr.create("radiusA", "radiusA", MFnNumericData::kFloat);
@@ -163,6 +166,7 @@ MStatus DCSphereNode::initialize()
 	addAttribute(aRadiusA);
 	attributeAffects(aRadiusA, aOutPointA);
 	attributeAffects(aRadiusA, aOutPointB);
+	attributeAffects(aRadiusA, aCollide);
 
 	aRadiusB = nAttr.create("radiusB", "radiusB", MFnNumericData::kFloat);
 	nAttr.setKeyable(true);
@@ -170,6 +174,7 @@ MStatus DCSphereNode::initialize()
 	addAttribute(aRadiusB);
 	attributeAffects(aRadiusB, aOutPointA);
 	attributeAffects(aRadiusB, aOutPointB);
+	attributeAffects(aRadiusB, aCollide);
 
 	// Collide bool-- such that riggers can trigger other events upon collision.
 	aCollide = nAttr.create("collide", "collide", MFnNumericData::kBoolean);
