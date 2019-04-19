@@ -23,6 +23,7 @@ SOFTWARE.
 */
 
 #include "DCSphereNode.h"
+#include <math.h>
 
 bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB);
 
@@ -57,31 +58,47 @@ void* DCSphereNode::creator()
 MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 {
 	MStatus status;
-
-	/*
 	// If user attempts to request plug data that isn't relevant to our computation, we safely return.
 	if ((plug != aOutPointA) || (plug != aOutPointB)) {
 		return MS::kUnknownParameter;
 	}
-	*/
 
 	// Relevant plugs to assigned to local vars.
-	MFloatVector inPointAValue = data.inputValue(aInPointA, &status).asFloatVector();
-	MFloatVector inPointBValue = data.inputValue(aInPointB, &status).asFloatVector();
+	MFloatVector inPointA = data.inputValue(aInPointA, &status).asFloatVector();
+	MFloatVector inPointB = data.inputValue(aInPointB, &status).asFloatVector();
 	float radiusA = data.inputValue(aRadiusA, &status).asFloat();
 	float radiusB = data.inputValue(aRadiusB, &status).asFloat();
 
 	// Local vars that'll become output.
-	bool collideFlag;
+	bool collideFlag = false;
 	MFloatVector outPointAValue;
 	MFloatVector outPointBValue;
+	MFloatVector ba;
+	MFloatVector ab;
+	double dist;
+	double push;
 
 	// Chec for sphere-sphere intersection first off.  If there's none, stop compute.
-	if (SphereIntersect(inPointAValue, inPointBValue, radiusA, radiusB)) {
+	if (SphereIntersect(inPointA, inPointB, radiusA, radiusB)) {
 		// Do the displacement calculations
 		collideFlag = true;
-		outPointAValue.y += 1; // Testing hooey to see if collision can move something.
+		
+		// We need to move the outPoints away from each other.
+		// First find vectors ba/ab existing between inPointA and inPointB,
+		ba.x = inPointB.x - inPointA.x;
+		ba.y = inPointB.y - inPointA.y;
+		ba.z = inPointB.z - inPointA.z;
+		ab.x = inPointA.x - inPointB.x;
+		ab.y = inPointA.y - inPointB.y;
+		ab.z = inPointA.z - inPointB.z;
 
+		// Get the distance between points
+		dist = sqrt(pow((inPointA.x - inPointB.x), 2) + pow((inPointA.y - inPointB.y), 2) + pow((inPointA.z - inPointB.z), 2));
+
+		// Calculate each sphere's "push-away" distance
+		push = ((radiusA + radiusB) - dist) / 2;
+
+		// Move each sphere to a point along BA and AB that intersects a circle around the original points but with radius equal to "push"
 	}
 	else {
 		collideFlag = false;
@@ -89,8 +106,7 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 
 	cout << collideFlag;
 
-
-	/// XXX get back to this part and repair it after the algorithm is written.
+	// XXX get back to this part and repair it after the algorithm is written.
 	MDataHandle hOutput = data.outputValue(aCollide, &status);
 	CHECK_MSTATUS_AND_RETURN_IT(status);
 	hOutput.setBool(collideFlag);
@@ -110,9 +126,9 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB)
 {
 	// Find the distance between centre points of A and B.
-	MVector d = pointA - pointB;
+	MFloatVector d = pointA - pointB;
 	// Square the distance first to avoid excess computation from sqrt function.
-	double dist2 = (d * d); 
+	double dist2 = (d * d);
 	
 	// Spheres intersect if squared distance is less than sum of radii.
 	float radiusSum = radiusA + radiusB;
