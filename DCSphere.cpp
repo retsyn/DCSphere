@@ -25,8 +25,8 @@ SOFTWARE.
 #include "DCSphereNode.h"
 #include <math.h>
 
-bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB);
-
+bool SphereIntersect(MFloatVector pointA, MFloatVector pointB, float radiusA, float radiusB);
+float DotProd(MFloatVector A, MFloatVector B);
 
 
 MTypeId DCSphereNode::id(0x00001966);
@@ -59,7 +59,7 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 {
 	MStatus status;
 	// If user attempts to request plug data that isn't relevant to our computation, we safely return.
-	if ((plug != aOutPointA) || (plug != aOutPointB)) {
+	if ((plug != aOutPointA) && (plug != aOutPointB) && (plug != aCollide)) {
 		return MS::kUnknownParameter;
 	}
 
@@ -71,8 +71,8 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 
 	// Local vars that'll become output.
 	bool collideFlag = false;
-	MFloatVector outPointAValue;
-	MFloatVector outPointBValue;
+	MFloatVector outPointA;
+	MFloatVector outPointB;
 	MFloatVector ba;
 	MFloatVector ab;
 	double dist;
@@ -99,9 +99,12 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 		push = ((radiusA + radiusB) - dist) / 2;
 
 		// Move each sphere to a point along BA and AB that intersects a circle around the original points but with radius equal to "push"
+
 	}
 	else {
 		collideFlag = false;
+		outPointA = inPointA;
+		outPointB = inPointB;
 	}
 
 	cout << collideFlag;
@@ -114,7 +117,12 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 
 	hOutput = data.outputValue(aOutPointA, &status);
 	CHECK_MSTATUS_AND_RETURN_IT(status);
-	hOutput.setMFloatVector(outPointAValue);
+	hOutput.setMFloatVector(outPointA);
+	hOutput.setClean();
+
+	hOutput = data.outputValue(aOutPointB, &status);
+	CHECK_MSTATUS_AND_RETURN_IT(status);
+	hOutput.setMFloatVector(outPointB);
 	hOutput.setClean();
 
 	data.setClean(plug);
@@ -123,17 +131,35 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 }
 
 
-bool SphereIntersect(MVector pointA, MVector pointB, float radiusA, float radiusB)
+float DotProd(MFloatVector A, MFloatVector B)
+{
+	// Calculate dot product of two MFloatVectors.
+	float prod;
+
+	prod = (A.x * B.x) + (A.y * B.y) + (A.z * B.z);
+
+	return prod;
+}
+
+
+bool SphereIntersect(MFloatVector pointA, MFloatVector pointB, float radiusA, float radiusB)
 {
 	// Find the distance between centre points of A and B.
 	MFloatVector d = pointA - pointB;
 	// Square the distance first to avoid excess computation from sqrt function.
-	double dist2 = (d * d);
+	float dist2 = DotProd(d, d);
 	
 	// Spheres intersect if squared distance is less than sum of radii.
 	float radiusSum = radiusA + radiusB;
 
-	return (dist2 <= radiusSum * radiusSum);
+	if ((dist2 <= (radiusSum * radiusSum))) {
+		return true;
+	}
+	else {
+		return false;
+	}
+
+	
 }
 
 
