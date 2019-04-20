@@ -24,9 +24,11 @@ SOFTWARE.
 
 #include "DCSphereNode.h"
 #include <math.h>
+#include <cmath>
 
 bool SphereIntersect(MFloatVector pointA, MFloatVector pointB, float radiusA, float radiusB);
 float DotProd(MFloatVector A, MFloatVector B);
+MFloatVector NormalizeVector(MFloatVector V);
 
 
 MTypeId DCSphereNode::id(0x00001966);
@@ -82,7 +84,7 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 	if (SphereIntersect(inPointA, inPointB, radiusA, radiusB)) {
 		// Do the displacement calculations
 		collideFlag = true;
-		
+
 		// We need to move the outPoints away from each other.
 		// First find vectors ba/ab existing between inPointA and inPointB,
 		ba.x = inPointB.x - inPointA.x;
@@ -98,7 +100,11 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 		// Calculate each sphere's "push-away" distance
 		push = ((radiusA + radiusB) - dist) / 2;
 
-		// Move each sphere to a point along BA and AB that intersects a circle around the original points but with radius equal to "push"
+		// Move each sphere to a point along BA and AB at a distance equal to the "push" value.
+		MFloatVector baNorm = NormalizeVector(ba);
+		MFloatVector abNorm = NormalizeVector(ab);
+		outPointA = inPointA + abNorm * push;
+		outPointB = inPointB + baNorm * push;
 
 	}
 	else {
@@ -128,6 +134,17 @@ MStatus DCSphereNode::compute(const MPlug& plug, MDataBlock& data)
 	data.setClean(plug);
 
 	return MS::kSuccess;
+}
+
+
+MFloatVector NormalizeVector(MFloatVector V) {
+	// Normalize the given vector
+	MFloatVector U;
+	U.x = V.x / abs(V.x);
+	U.y = V.y / abs(V.y);
+	U.z = V.z / abs(V.z);
+
+	return V;
 }
 
 
